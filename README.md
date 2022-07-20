@@ -39,10 +39,10 @@ __Additional instructions:__
 
     Please discuss your rationale for any modifications to existing variables or exclusions.  
 
-4. Utilize logistic regression to create a prediction model for preterm birth using the four variables included in the table from Question 3. Please report the following: (1) Figure of ROC Curve (2) AUROC value (3) Table with fitted regression coefficients, standard errors, and p-values. 
+4. Utilize logistic regression to create a prediction model for preterm birth using the four variables included in the table from Question 3. Please report the following: (1) Figure of ROC Curve (2) AUROC value (3) Table with fitted regression coefficients, standard errors, and p-values. *Please note you will not be assessed on model performance.*
 
-5. Create a prediction model for preterm birth with your choice of machine learning method and variables. Please only include the code and results for __one model__ and report the following: (1) Figure of ROC Curve (2) AUROC value. 
+5. Create a prediction model for preterm birth with your choice of machine learning method and variables. Please only include the code and results for __one model__ and report the following: (1) Figure of ROC Curve (2) AUROC value. *Please note you will not be assessed on model performance.*
 
-6. Provide a description of the methods (1-2 paragraphs) used for your model in Question 5 that could be included in a research article with language accessible to an individual who is not familiar with the technical details of machine learning. Your description should include rationale for your chosen machine learning method, choice of included variables, and any exclusions or data modifications that you made. 
+6. Provide a description of the methods (1-2 paragraphs) used for your model in Question 5 that could be included in a research article with language accessible to an individual who is not familiar with the technical details of machine learning. Your description should include a brief description of your chosen machine learning method, rationale for your choice of included variables, and any exclusions or data modifications that you made. 
 
 7. Compare and discuss the performance of your model in Question 5 to the logistic regression model in Question 4. 
