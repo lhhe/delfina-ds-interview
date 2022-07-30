@@ -1,5 +1,5 @@
 ---
-title: "LHHE_Delfina_interview"
+title: "Delfina take-home assessment"
 author: "Leonardo Hernandez Espinoza"
 date: "2022-07-30"
 output: html_document
@@ -8,9 +8,68 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(data.table)
+```
+
+## Import the data
+
+```{r}
+# If you are testing this outside my repo, please change the url
+data_url <- "~/R/delfina-ds-interview/data/birthdata2020.csv"
+birth_data <- read.csv(data_url, header = TRUE)
+```
+
+## Task 1:  What is the proportion of births by gestational age at delivery
+I am answering this question as the proportion of births at each one of the combined gestation weeks based on the column COMBGEST.
+
+Given that COMBGEST uses the value 99 as a filler value to denote missing data I will remove that value. 
+I am also filtering the data to limit the results to values between 20 and 50 weeks, that range was selected based on information found [here](https://www.health.ny.gov/community/pregnancy/why_is_40_weeks_so_important.htm#:~:text=How%20long%20is%20full%20term%3F).
+
+```{r}
+birth_data %>% 
+  filter(COMBGEST %in% (20:50)) %>% 
+  ggplot(aes(COMBGEST))+
+  geom_bar(aes(y = (..count..)/sum(..count..)), fill = 'blue') +
+  theme_classic()+
+  xlab("Number of weeks at birth")+
+  ylab("Proportion of births")
+```
+<br>
+As we can see, the largest proportion of births occur between 39 and 41 weeks of gestation.
+
+
+## Task 2:  What is the prevalence of preterm birth in this dataset?
+To answer this question I will create a flag variable (is_preterm) to indicate if the birth occurred prior to 37 weeks of gestation (based on COMBGEST). In order to better calculate the proportion of preterm birth that occurred during 2020, I will exclude those cases where COMBGEST =99
+```{r}
+birth_data %>% 
+  filter(COMBGEST<99) %>% 
+  mutate(is_preterm = case_when(
+    COMBGEST < 37 ~ "Yes",
+    TRUE ~ "No"
+  )) %>% 
+  group_by(is_preterm) %>% 
+  summarise(n_cases = n()) %>%
+  mutate(percentage = 100* round(n_cases / sum(n_cases), 4)) %>% 
+  data.table()
+
+```
+
+We can see that from all the observations in the dataset, less than 12% of the cases are preterm births.
+
+## Tast 3: Summarizes the relationship between preterm birth and the following four variables:
+
+  - Maternal age (MAGER)
+
+  - Maternal race/Hispanic origin (MRACEHISP)
+
+  - Previous preterm birth (RF_PPTERM)
+
+  - Total number of prenatal visits (PREVIS)
+
 
 ## R Markdown
-
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
@@ -23,7 +82,7 @@ summary(cars)
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
+```{r pressurech, eo=FALSE}
 plot(pressure)
 ```
 
