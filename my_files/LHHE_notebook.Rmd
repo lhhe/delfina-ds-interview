@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(data.table)
+library(formattable)
 ```
 
 ## Import the data
@@ -41,22 +42,33 @@ As we can see, the largest proportion of births occur between 39 and 41 weeks of
 
 
 ## Task 2:  What is the prevalence of preterm birth in this dataset?
-To answer this question I will create a flag variable (is_preterm) to indicate if the birth occurred prior to 37 weeks of gestation (based on COMBGEST). In order to better calculate the proportion of preterm birth that occurred during 2020, I will exclude those cases where COMBGEST =99
+To answer this question I will create a flag variable (is_preterm) to indicate if the birth occurred prior to 37 weeks of gestation (based on COMBGEST). In order to better calculate the proportion of preterm birth that occurred during 2020, I will exclude those cases where <br>COMBGEST =99.
+
+From this point on, the is_preterm column will be used multiple times so I will fist add it to the data set.
 ```{r}
-birth_data %>% 
-  filter(COMBGEST<99) %>% 
+birth_data <- birth_data %>% 
+  filter(COMBGEST != 99) %>% 
   mutate(is_preterm = case_when(
     COMBGEST < 37 ~ "Yes",
     TRUE ~ "No"
-  )) %>% 
+  ))
+
+
+```
+With the new column added, I then evaluate the proportions of preterm births
+```{r}
+ task2_table <- birth_data %>% 
   group_by(is_preterm) %>% 
   summarise(n_cases = n()) %>%
   mutate(percentage = 100* round(n_cases / sum(n_cases), 4)) %>% 
   data.table()
-
+```
+I will use the formattable package for better aesthetics 
+```{r}
+formattable(task2_table)
 ```
 
-We can see that from all the observations in the dataset, less than 12% of the cases are preterm births.
+We can see that from all the observations in the data set, less ~12% of the cases are preterm births.
 
 ## Tast 3: Summarizes the relationship between preterm birth and the following four variables:
 
@@ -69,21 +81,4 @@ We can see that from all the observations in the dataset, less than 12% of the c
   - Total number of prenatal visits (PREVIS)
 
 
-## R Markdown
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressurech, eo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Based on the example given, 
