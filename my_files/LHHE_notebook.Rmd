@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(data.table)
 library(formattable)
+library(ROCR)
+library(pROC)
 ```
 
 ## Import the data
@@ -63,14 +65,14 @@ With the new column added, I then evaluate the proportions of preterm births
   mutate(percentage = 100* round(n_cases / sum(n_cases), 4)) %>% 
   data.table()
 ```
-I will use the formattable package for better aesthetics 
+I will use the `formattable` package for better aesthetics 
 ```{r}
 formattable(task2_table)
 ```
 
 We can see that from all the observations in the data set, less ~12% of the cases are preterm births.
 
-## Tast 3: Summarizes the relationship between preterm birth and the following four variables:
+## Task 3: Summarizes the relationship between preterm birth and the following four variables:
 
   - Maternal age (MAGER)
 
@@ -87,8 +89,8 @@ I will create dummy categorical variables to create bins for Maternal age (MAGER
 
 First I will create the bins for Maternal Age:
 ```{r }
-MAGER_cuts <- c(0,19,20,30,40,50)
-MAGER_labs <- c("< 19", "20-29", "30-39", "40-49", "> 50")
+MAGER_cuts <- c(0,19,29,39,49,59)
+MAGER_labs <- c("19 and under", "20-29", "30-39", "40-49",  "50 and over")
 
 birth_data <- birth_data %>% 
   mutate(age_bins = cut(MAGER, breaks=MAGER_cuts, labels=MAGER_labs ))
@@ -101,8 +103,8 @@ To define the bins I created a series of histograms to visualize the distributio
 
 ```{r}
 PREVIS_cuts <- c(0,5,10,15,100)
-PREVIS_labels <- c("< 5", "5-9",
-                   "10-14", "> 15")
+PREVIS_labels <- c("Less than 5", "5-9",
+                   "10-14", "15 and over")
 
 birth_data <- birth_data %>% 
   mutate(PREVIS = na_if(PREVIS, 99)) %>% 
@@ -111,22 +113,136 @@ birth_data <- birth_data %>%
 
 After creating the new features I can now summarize the number of births (preterm or not) for each category of the following variables:
 
-- age_bins
-- MRACEHISP
-- RF_PPTERM
-- PREVIS_bins
+### age_bins
 
 
 ```{r}
-birth_data %>% 
-  group_by(age_bins ) %>% 
-  count(is_preterm)
-```
-
-```{r}
-birth_data %>% 
+ct_age_bins <- birth_data %>% 
   group_by(is_preterm, age_bins) %>% 
   tally() %>% 
   spread(is_preterm, n)
+
+formattable(ct_age_bins, align = c("l", rep("r", NCOL(ct_age_bins) - 1)))
+```
+
+### MRACEHISP
+
+MRACEHISP is a numerical code that represents the mother's race and whether she is Hispanic  or not. The numerical code makes it difficult to understand the data. Therefore I will create a new and more intuitive column (`MRACE_strg`).
+
+```{r}
+birth_data <- birth_data %>%
+  mutate(MRACE_strg = recode(MRACEHISP,
+                             `1` = "White",
+                             `2` = "Black",
+                             `3` = "AIAN",
+                             `4` = "Asian",
+                             `5` = "NHOPI",
+                             `6` = "Mixed",
+                             `7` = "Hispanic",
+                             `8` = "Unknown"))
+```
+
+
+```{r}
+ct_MRACEHISP<- birth_data %>% 
+  group_by(is_preterm, MRACE_strg) %>% 
+  tally() %>% 
+  spread(is_preterm, n)
+
+formattable(ct_MRACEHISP, align = c("l", rep("r", NCOL(ct_MRACEHISP) - 1)))
+```
+
+### RF_PPTERM
+Whether the previous birth was a preterm one is coded as Y, N, U. There are only 4 cases where the information was unknown so I will filter those out. The remaining ones I will recode for clarity.
+```{r}
+ct_RF_PPTERM <- birth_data %>% 
+  filter(RF_PPTERM != "U") %>% 
+  mutate(RF_PPTERM = recode(RF_PPTERM,
+                            `Y` = "Yes",
+                            `N`= "No",
+                            )) %>% 
+  group_by(is_preterm, RF_PPTERM) %>% 
+  tally() %>% 
+  spread(is_preterm, n)
+
+formattable(ct_RF_PPTERM, align = c("l", rep("r", NCOL(ct_RF_PPTERM) - 1)))
+```
+
+
+
+### PREVIS_bins
+```{r}
+ct_PREVIS_bins <- birth_data %>% 
+  group_by(is_preterm, PREVIS_bins) %>% 
+  tally() %>% 
+  spread(is_preterm, n) %>% 
+  data.table()
+
+formattable(ct_PREVIS_bins, align = c("l", rep("r", NCOL(ct_PREVIS_bins) - 1)))
+```
+
+
+## Task 4: Predicting preterm bith in response to  Maternal age, Maternal race, whether the previous bith was preterm, and the total number of prenatal visits.
+
+
+
+### Data Prepaparion
+To perform a logistic regression, the feature to predict has to be a numerical binary (0 or 1). I will create a new feature to accommodate this requirement, rather the re-coding `is_preterm` because this one could be needed for future analysis
+```{r}
+birth_data <- birth_data %>% 
+  mutate(is_preterm_binary = recode(is_preterm,
+                             `Yes` = 1,
+                             `No` = 0))  
+
+```
+
+I will split the data into a training set (80%) and testing set (20%), in order to evaluate performance
+
+```{r}
+splitter_idx <- sample(nrow(birth_data),nrow(birth_data)*0.80)
+birth_train_data = birth_data[splitter_idx,]
+birth_test_data = birth_data[-splitter_idx,]
+```
+
+
+
+### Logistic Regression model
+```{r}
+logistic_model_train <- glm(is_preterm_binary~MAGER+MRACEHISP+RF_PPTERM+PREVIS, data= birth_train_data)
+summary(logistic_model_train)
+```
+
+
+### ROC curve
+First we need to obtain the probability outcome of each observation
+```{r}
+pred_logistic_model <- predict(logistic_model_train, type="response", newdata =birth_train_data )
+```
+
+
+```{r}
+prediction_and_labels_df <- data.frame(pred_logistic_model, birth_train_data$is_preterm_binary)
+names(prediction_and_labels_df) <- c("predictions", "labels")
+
+#remove nas
+prediction_and_labels_clean <- na.omit(prediction_and_labels_df)
+
+```
+
+
+
+
+```{r}
+pred <- prediction(prediction_and_labels_clean$predictions, prediction_and_labels_clean$labels)
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+abline(coef = c(0,1))
+```
+
+### AUROC value
+
+```{r message=FALSE}
+auroc_value <- auc(prediction_and_labels_clean$labels, prediction_and_labels_clean$predictions)
+auroc_value
 ```
 

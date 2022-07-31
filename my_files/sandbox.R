@@ -26,12 +26,17 @@ write.csv(data_description,
 
 
 ## MAGER
-cuts <- c(0,19,20,30,40,50)
-bin_labs <- c("< 19", "20-29", "30-39", "40-49", "> 50")
+cuts <- c(0,19,29,39,49,59)
+bin_labs <- c("< 19", "20-29", "30-39", "40-49", " >= 50")
 
 birth_data %>% 
-  mutate(age_bins = cut(MAGER, breaks=cuts, labels=bin_labs )) %>% 
-  head(20)
+  mutate(age_bins = cut(MAGER, breaks=cuts, labels=bin_labs)) %>% 
+  filter(MAGER==29) %>% 
+  select(MAGER, age_bins) %>% 
+  data.table()
+
+sum(birth_data$MAGER==50)
+min(birth_data$MAGER)
 
 ## PREVIS
 
@@ -64,3 +69,26 @@ birth_data %>%
   select(PREVIS, PREVIS_bins) %>% 
   #filter(PREVIS >20) %>% 
   head(20)
+
+
+
+##MRACESHIP
+birth_data %>% 
+  group_by(is_preterm, as.factor(MRACEHISP)) %>% 
+  tally() %>% 
+  spread(is_preterm, n)
+
+
+## recode
+
+birth_data %>%
+  mutate(MRACE_strg = recode(MRACEHISP,
+                             `1` = "White",
+                             `2` = "Black",
+                             `3` = "AIAN",
+                             `4` = "Asian",
+                             `5` = "NHOPI",
+                             `6` = "Mixed",
+                             `7` = "Hispanic",
+                             `8` = "Unknown")) %>% 
+  select(MRACEHISP, MRACE_strg)
