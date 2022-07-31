@@ -92,3 +92,16 @@ birth_data %>%
                              `7` = "Hispanic",
                              `8` = "Unknown")) %>% 
   select(MRACEHISP, MRACE_strg)
+
+
+### logistic model
+
+logistic_model <- glm(is_preterm_binary~MAGER+MRACEHISP+RF_PPTERM+PREVIS, data= birth_train_data)
+summary(logistic_model)
+
+hist(predict(logistic_model))
+pred_resp <- predict(logistic_model, type="response")
+hist(pred_resp)
+length(pred_resp)
+length(birth_train_data)
+
