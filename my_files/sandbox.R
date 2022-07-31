@@ -11,9 +11,7 @@ head(birth_data)
 
 cols <- colnames(birth_data)
 
-typeof(cols)
-length(cols)
-cols[1]
+
 
 # Create a data dictionary to better understand the variables
 data_description <- data.frame(var_codes = cols)
@@ -23,17 +21,46 @@ write.csv(data_description,
 )
 
 
-# Q1 proportion of births by gestational age
-# I will use COMBGEST as the metric
+
+## Creating  bins
+
+
+## MAGER
+cuts <- c(0,19,20,30,40,50)
+bin_labs <- c("< 19", "20-29", "30-39", "40-49", "> 50")
 
 birth_data %>% 
-  filter(COMBGEST<99) %>% 
-  mutate(is_preterm = case_when(
-    COMBGEST < 37 ~ "Yes",
-    TRUE ~ "No"
-  )) %>% 
-  group_by(is_preterm) %>% 
-  summarise(n_cases = n()) %>%
-  #mutate(percentage = 100* round(n_cases / sum(n_cases), 3))
-  mutate(percentage = 100* (n_cases / sum(n_cases)))
+  mutate(age_bins = cut(MAGER, breaks=cuts, labels=bin_labs )) %>% 
+  head(20)
 
+## PREVIS
+
+mean(birth_data$PREVIS)
+sd(birth_data$PREVIS)
+min(birth_data$PREVIS)
+max(birth_data$PREVIS)
+
+sum(birth_data$PREVIS==99)
+
+birth_data <- birth_data %>% 
+  mutate(PREVIS = na_if(PREVIS, 99))
+
+
+
+#How many bins?
+birth_data %>% 
+  ggplot(aes(PREVIS))+
+  geom_histogram(bins=4, fill=NA, color="blue")+
+  geom_histogram(bins=8, fill=NA, color="orange")+
+  geom_histogram(bins=10, fill=NA, color="red")
+
+PREVIS_cuts <- c(0,5,10,15,100)
+PREVIS_labels <- c("< 5", "5-9",
+                   "10-14", "> 15")
+
+birth_data %>% 
+  mutate(PREVIS = na_if(PREVIS, 99)) %>% 
+  mutate(PREVIS_bins = cut(PREVIS, breaks =PREVIS_cuts, right=FALSE, labels=PREVIS_labels)) %>% 
+  select(PREVIS, PREVIS_bins) %>% 
+  #filter(PREVIS >20) %>% 
+  head(20)
