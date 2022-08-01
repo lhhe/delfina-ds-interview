@@ -14,6 +14,8 @@ library(data.table)
 library(formattable)
 library(ROCR)
 library(pROC)
+library(randomForest)
+
 set.seed(2007)
 ```
 
@@ -188,28 +190,39 @@ formattable(ct_PREVIS_bins, align = c("l", rep("r", NCOL(ct_PREVIS_bins) - 1)))
 
 
 ### Data Prepaparion
-To perform a logistic regression, the feature to predict has to be a numerical binary (0 or 1). I will create a new feature to accommodate this requirement, rather the re-coding `is_preterm` because this one could be needed for future analysis
+From this point forward I will be only using is_preterm, MAGER, MRACEHISP, RF_PPTERM, PREVIS so I will create a new data frame with only those columns and remove the raw data to clear up space in the session. I will cast `is_preterm` as a factor.
+
 ```{r}
-birth_data <- birth_data %>% 
-  mutate(is_preterm_binary = recode(is_preterm,
-                             `Yes` = 1,
-                             `No` = 0))  
+birth_data_narrow <- birth_data %>% 
+  select(is_preterm, MAGER,
+         MRACEHISP, RF_PPTERM, PREVIS) %>% 
+  na.omit() %>% 
+  mutate(RF_PPTERM = recode(RF_PPTERM,
+                            `Y` = 1,
+                            `N`= 0,
+                             `U` = 999
+                            ),
+         is_preterm = as.factor(is_preterm),
+         RF_PPTERM = as.factor(RF_PPTERM)
+         ) 
 
 ```
+
+
 
 I will split the data into a training set (80%) and testing set (20%), in order to evaluate performance
 
 ```{r}
-splitter_idx <- sample(nrow(birth_data),nrow(birth_data)*0.80)
-birth_train_data = birth_data[splitter_idx,]
-birth_test_data = birth_data[-splitter_idx,]
+splitter_idx <- sample(nrow(birth_data_narrow),nrow(birth_data_narrow)*0.80)
+birth_train_data = birth_data_narrow[splitter_idx,]
+birth_test_data = birth_data_narrow[-splitter_idx,]
 ```
 
 
 
 ### Logistic Regression model
 ```{r}
-logistic_model_train <- glm(is_preterm_binary~MAGER+MRACEHISP+RF_PPTERM+PREVIS, data= birth_train_data)
+logistic_model_train <- glm(is_preterm~MAGER+MRACEHISP+RF_PPTERM+PREVIS, data= birth_train_data,family="binomial")
 summary(logistic_model_train)
 ```
 Based on the summary data we can see that MAGER and MRACEHISP are not statistically significant. This makes them good candidates to be removed from the model and see if there is an improvement on AIC.
@@ -217,12 +230,12 @@ Based on the summary data we can see that MAGER and MRACEHISP are not statistica
 ### ROC curve
 First we need to obtain the probability outcome of each observation
 ```{r}
-pred_logistic_model <- predict(logistic_model_train, type="response", newdata =birth_test_data )
+pred_logistic_model <- predict(logistic_model_train, type="response", newdata =birth_test_data[,-1] )
 ```
 
 
 ```{r}
-prediction_and_labels_df <- data.frame(pred_logistic_model, birth_test_data$is_preterm_binary)
+prediction_and_labels_df <- data.frame(pred_logistic_model, birth_test_data$is_preterm)
 names(prediction_and_labels_df) <- c("predictions", "labels")
 
 #remove nas
@@ -245,6 +258,48 @@ abline(coef = c(0,1))
 ```{r}
 auc <- performance(pred, measure = "auc")
 auc <- auc@y.values[[1]]
-print(paste0("The AUC values is: ",round(auc,3)))
+print(paste0("The AUC values is: ", round(auc,3)))
 ```
 
+## Task 5: ML approach to predict preterm births
+
+I will use a random forest classifier as it is a good place to start.
+
+```{r}
+rf_model <- randomForest(is_preterm ~ ., data=birth_train_data, proximity=TRUE, na.action=na.roughfix)
+rf_model
+```
+
+### ROC
+
+```{r}
+rf_prediction_roc <-  predict(rf_model, type="prob", newdata =birth_test_data[,-1] )[,2]
+
+pred_rf = prediction(rf_prediction_roc, birth_test_data[,1]) 
+perf <- performance(pred_rf, "tpr", "fpr")
+plot(perf)
+abline(coef = c(0,1))
+```
+
+### AUROC value
+```{r}
+auc_rf <- performance(pred_rf, measure = "auc")
+auc_rf <- auc_rf@y.values[[1]]
+print(paste0("The AUC values is: ", round(auc_rf,3)))
+
+```
+
+## Task 6: 
+
+
+When using ML approaches we have to consider whether the increased complexity is needed and justified. A random forest model is a good starting place because it is easy to train, and more importantly easy to understand.
+
+In addition random forest models are less prone to over fitting because they use ensemble learning. For this case in particular I decided on random forest because it can use both discrete and continuous variables.
+
+To perform the analysis I started by splitting the data into a training and testing set. I used the training set to train the model using the `randomForest` function.  After the model was trained I generated predictions based on the testing set (without including the dependent variable). Those predictions were then used to generate the ROC curve and the AUC values using the `ROCR` package.
+
+
+
+## Task 7: Comparing the models
+
+In this case based on AUC values we can see that the logistic model is performing better than the random forest classifier. However, it is important to keep in mind that these model include variables that may not be contributing to the predictive power of both models, and additional models should be trained while reducing the number or independent variables.

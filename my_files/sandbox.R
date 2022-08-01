@@ -105,3 +105,4 @@ hist(pred_resp)
 length(pred_resp)
 length(birth_train_data)
 
+head(birth_test_data[,-1])
