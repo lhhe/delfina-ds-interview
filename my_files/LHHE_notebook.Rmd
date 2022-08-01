@@ -14,6 +14,7 @@ library(data.table)
 library(formattable)
 library(ROCR)
 library(pROC)
+set.seed(2007)
 ```
 
 ## Import the data
@@ -211,17 +212,17 @@ birth_test_data = birth_data[-splitter_idx,]
 logistic_model_train <- glm(is_preterm_binary~MAGER+MRACEHISP+RF_PPTERM+PREVIS, data= birth_train_data)
 summary(logistic_model_train)
 ```
-
+Based on the summary data we can see that MAGER and MRACEHISP are not statistically significant. This makes them good candidates to be removed from the model and see if there is an improvement on AIC.
 
 ### ROC curve
 First we need to obtain the probability outcome of each observation
 ```{r}
-pred_logistic_model <- predict(logistic_model_train, type="response", newdata =birth_train_data )
+pred_logistic_model <- predict(logistic_model_train, type="response", newdata =birth_test_data )
 ```
 
 
 ```{r}
-prediction_and_labels_df <- data.frame(pred_logistic_model, birth_train_data$is_preterm_binary)
+prediction_and_labels_df <- data.frame(pred_logistic_model, birth_test_data$is_preterm_binary)
 names(prediction_and_labels_df) <- c("predictions", "labels")
 
 #remove nas
@@ -241,8 +242,9 @@ abline(coef = c(0,1))
 
 ### AUROC value
 
-```{r message=FALSE}
-auroc_value <- auc(prediction_and_labels_clean$labels, prediction_and_labels_clean$predictions)
-auroc_value
+```{r}
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+print(paste0("The AUC values is: ",round(auc,3)))
 ```
 
