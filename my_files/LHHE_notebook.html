@@ -488,6 +488,9 @@ age (MAGER) and for the total number or prenatal visits (PREVIS). By
 creating bins I will aggregate those variables into fewer categorical
 values that would contain more observations and therefore will help
 focus the message in the data.</p>
+<p><strong><em>Note:</em></strong> in each of the following tables the
+<code>No</code> and <code>Yes</code> columns represent whether a birth
+was preterm or not.</p>
 <p>First I will create the bins for Maternal Age:</p>
 <pre class="r"><code>MAGER_cuts &lt;- c(0,19,29,39,49,59)
 MAGER_labs &lt;- c(&quot;19 and under&quot;, &quot;20-29&quot;, &quot;30-39&quot;, &quot;40-49&quot;,  &quot;50 and over&quot;)
@@ -993,10 +996,10 @@ print(paste0(&quot;The AUC values is: &quot;, round(auc_rf,3)))</code></pre>
 complexity is needed and justified. A random forest model is a good
 starting place because it is easy to train, and more importantly easy to
 understand.</p>
-<p>In addition random forest models are less prone to over fitting
-because they use ensemble learning. For this case in particular I
-decided on random forest because it can use both discrete and continuous
-variables.</p>
+<p>For this case in particular I decided on random forest because it can
+use both discrete and continuous variables. In addition, random forest
+models are less prone to over fitting because they use ensemble
+learning.</p>
 <p>To perform the analysis I started by splitting the data into a
 training and testing set. I used the training set to train the model
 using the <code>randomForest</code> function. After the model was
