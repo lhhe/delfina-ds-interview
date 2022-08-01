@@ -90,6 +90,8 @@ Based on the example given, I will compare the number of births (preterm and not
 
 I will create dummy categorical variables to create bins for Maternal age (MAGER) and for the total number or prenatal visits (PREVIS). By creating bins I will aggregate those variables into fewer categorical values that would contain more observations and therefore will help focus the message in the data. 
 
+***Note:*** in each of the following tables the `No` and `Yes` columns represent whether a birth was preterm or not.
+
 First I will create the bins for Maternal Age:
 ```{r }
 MAGER_cuts <- c(0,19,29,39,49,59)
@@ -184,6 +186,7 @@ ct_PREVIS_bins <- birth_data %>%
 formattable(ct_PREVIS_bins, align = c("l", rep("r", NCOL(ct_PREVIS_bins) - 1)))
 ```
 
+I wanted to combine all this tables into a single one (as the one on the example paper), but couldn't get to work. I think the DT package can be used here, but I would need to look into it. However, this may be one of those cases where a spreadsheet would be a better(and faster) solution.
 
 ## Task 4: Predicting preterm bith in response to  Maternal age, Maternal race, whether the previous bith was preterm, and the total number of prenatal visits.
 
@@ -294,7 +297,7 @@ print(paste0("The AUC values is: ", round(auc_rf,3)))
 
 When using ML approaches we have to consider whether the increased complexity is needed and justified. A random forest model is a good starting place because it is easy to train, and more importantly easy to understand.
 
-In addition random forest models are less prone to over fitting because they use ensemble learning. For this case in particular I decided on random forest because it can use both discrete and continuous variables.
+For this case in particular I decided on random forest because it can use both discrete and continuous variables. In addition, random forest models are less prone to over fitting because they use ensemble learning. 
 
 To perform the analysis I started by splitting the data into a training and testing set. I used the training set to train the model using the `randomForest` function.  After the model was trained I generated predictions based on the testing set (without including the dependent variable). Those predictions were then used to generate the ROC curve and the AUC values using the `ROCR` package.
 
